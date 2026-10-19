@@ -41,8 +41,8 @@
         "cohort": "unmatched",
         "location": "unmatched"
       },
-      "matchLevel": "insufficient_evidence",
-      "scoreRange": { "min": 20, "max": 20 }
+      "matchLevel": "weak",
+      "scoreRange": { "min": 25, "max": 25 }
     }
   },
   {
@@ -221,7 +221,7 @@
         "location": "unmatched"
       },
       "matchLevel": "strong",
-      "scoreRange": { "min": 90, "max": 90 }
+      "scoreRange": { "min": 100, "max": 100 }
     }
   }
 ]

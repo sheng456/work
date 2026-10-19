@@ -1,6 +1,5 @@
 import type { Context } from "@deepseek-ai/cordis";
 import type { ContentBlock } from "@deepseek-ai/dsh-llm";
-import type { JsonValue } from "@deepseek-ai/dsh-tools";
 import {
   type DefineToolOptions,
   defineTool as dshDefineTool,
@@ -20,7 +19,7 @@ import type { LocalBossJobSearchService } from "./boss-job-search.js";
 import type { LocalCandidateBoardService } from "./candidate-board.js";
 import { deriveTodayRecommendations } from "./today-recommendations.js";
 import type { LocalCandidateProfileService } from "./candidate-profile.js";
-import type { BossWatchBrowserController, BossWatchDataSource } from "./domain.js";
+import type { BossWatchBrowserController, BossWatchDataSource, JsonValue } from "./domain.js";
 import type { LocalGateAService } from "./gate-a.js";
 import type { InterviewNoteStage, LocalInterviewNoteClient } from "./interview-note-client.js";
 import type { LocalJobDescriptionDiffService } from "./job-diff.js";
@@ -3085,7 +3084,7 @@ export function registerBossWatchTools(
       defineTool({
         name: "boss_watch_resume_match",
         description:
-          "Match one registered local resume against one locally captured complete JD with local-evidence-match-v3. Returns only hashes, normalized technology/capability labels, eligibility and location-preference constraints, a privacy-bounded resume summary, score, gaps and risks; never returns raw resume/JD text or calls an external model.",
+          "Match one registered local resume against one locally captured complete JD with local-evidence-match-v5. Returns only hashes, normalized technology/capability labels, eligibility and location-preference constraints, a privacy-bounded resume summary, score, gaps and risks; never returns raw resume/JD text or calls an external model.",
         parameters: {
           applicationId: {
             type: "string",

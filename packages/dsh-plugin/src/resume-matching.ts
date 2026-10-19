@@ -2,6 +2,11 @@ import { createHash } from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import {
+  DEFAULT_RESUME_MATCH_SCORING,
+  requiredItemWeight,
+  type ResumeMatchScoringOptions,
+} from './resume-match-scoring.js'
 import type { BossWatchDataSource } from './domain.js'
 import type { LocalResumeImportService, ResumeTextContent } from './resume-version.js'
 
@@ -29,6 +34,20 @@ export interface ResumeMatchConstraint {
   readonly requiresUserConfirmation?: true
 }
 
+/**
+ * A question the matcher cannot answer from local evidence.
+ *
+ * Raised whenever an eligibility constraint stays `unknown`, so the missing
+ * evidence becomes an explicit question for the candidate instead of only a
+ * silent score cap.
+ */
+export interface ResumeMatchClarification {
+  readonly field: ResumeMatchConstraint['field']
+  readonly constraintType: ResumeConstraintType
+  readonly required?: string
+  readonly question: string
+}
+
 export interface ResumeSummary {
   readonly education: {
     readonly highestLevel?: '大专' | '本科' | '硕士' | '博士'
@@ -50,7 +69,7 @@ export interface ResumeSummary {
 
 export interface ResumeMatchResult {
   readonly matchId: string
-  readonly strategyVersion: 'local-evidence-match-v3'
+  readonly strategyVersion: 'local-evidence-match-v5'
   readonly createdAt: string
   readonly applicationId: string
   readonly jd: {
@@ -70,6 +89,8 @@ export interface ResumeMatchResult {
   }
   readonly resumeSummary: ResumeSummary
   readonly hardConstraints: readonly ResumeMatchConstraint[]
+  /** Explicit questions for every eligibility constraint left `unknown`. */
+  readonly clarifications: readonly ResumeMatchClarification[]
   readonly skills: {
     readonly required: readonly string[]
     readonly matched: readonly string[]
@@ -199,7 +220,12 @@ export class LocalResumeMatchingService {
     this.#now = input.now ?? (() => new Date())
   }
 
-  async match(input: { readonly applicationId: string; readonly resumeVersionId: string }): Promise<ResumeMatchResult> {
+  async match(input: {
+    readonly applicationId: string
+    readonly resumeVersionId: string
+    /** Overrides the default scoring parameters; omitted callers keep the defaults. */
+    readonly scoring?: ResumeMatchScoringOptions
+  }): Promise<ResumeMatchResult> {
     const applicationId = requireText(input.applicationId, 'application_id')
     const job = await this.#source.getJob(applicationId)
     if (job === undefined) throw new Error('resume_match_job_not_found')
@@ -218,15 +244,27 @@ export class LocalResumeMatchingService {
     const matchedSkills = [...matchedTechnologies, ...matchedCapabilities]
     const missingSkills = [...missingTechnologies, ...missingCapabilities]
     const hardConstraints = extractHardConstraints(normalizedJd, normalizedResume)
+    const scoring = input.scoring ?? DEFAULT_RESUME_MATCH_SCORING
     const score = calibratedScore(
-      scoreMatch(requiredSkills.length, matchedSkills.length, hardConstraints),
+      scoreMatch({
+        requiredTechnologies,
+        matchedTechnologies,
+        requiredCapabilities,
+        matchedCapabilities,
+        constraints: hardConstraints,
+        scoring,
+      }),
       resume.extractionStatus,
       hardConstraints,
+      requiredSkills.length,
+      matchedSkills.length,
+      scoring,
     )
-    const matchLevel = levelFor(score, resume.extractionStatus, requiredSkills.length, hardConstraints)
+    const matchLevel = levelFor(score, resume.extractionStatus, requiredSkills.length, hardConstraints, scoring)
+    const clarifications = buildClarifications(hardConstraints)
     const createdAt = this.#now().toISOString()
     const matchId = `resume-match:${createHash('sha256')
-      .update(`${applicationId}\n${job.contentHash}\n${resume.resumeVersion.contentHash}\nlocal-evidence-match-v3`)
+      .update(`${applicationId}\n${job.contentHash}\n${resume.resumeVersion.contentHash}\nlocal-evidence-match-v5`)
       .digest('hex')}`
     const evidence = [
       ...matchedTechnologies.map((item) => ({ kind: 'skill' as const, item, status: 'matched' as const })),
@@ -257,12 +295,15 @@ export class LocalResumeMatchingService {
     const risks = [
       ...(resume.extractionStatus === 'text_truncated' ? ['resume_text_truncated'] : []),
       ...(requiredSkills.length === 0 ? ['jd_skill_terms_not_observed'] : []),
+      ...(requiredSkills.length > 0 && requiredSkills.length < scoring.minRequiredSkillsForFullCredit
+        ? ['jd_skill_terms_thin']
+        : []),
       ...(hardConstraints.some((constraint) => constraint.constraintType === 'eligibility' && constraint.status === 'unknown') ? ['hard_constraint_not_observed'] : []),
       ...(hardConstraints.some((constraint) => constraint.field === 'location' && constraint.status !== 'matched') ? ['location_preference_needs_confirmation'] : []),
     ]
     const result: ResumeMatchResult = {
       matchId,
-      strategyVersion: 'local-evidence-match-v3',
+      strategyVersion: 'local-evidence-match-v5',
       createdAt,
       applicationId,
       jd: {
@@ -282,6 +323,7 @@ export class LocalResumeMatchingService {
       },
       resumeSummary: summarizeResume(resume.text, normalizedResume, resumeTechnologies, resumeCapabilities),
       hardConstraints,
+      clarifications,
       skills: {
         required: requiredSkills,
         matched: matchedSkills,
@@ -494,40 +536,131 @@ function extractHardConstraints(jd: string, resume: string): ResumeMatchConstrai
       requiresUserConfirmation: true,
     })
   }
-  const experienceMatch = jd.match(/(\d+)\s*(?:年?以上|年及以上|年经验|年工作经验)/u)
-  if (experienceMatch?.[1] !== undefined) {
-    const minimum = Number(experienceMatch[1])
-    const resumeMatch = resume.match(/(\d+)\s*(?:年?以上|年及以上|年经验|年工作经验)/u)
-    const observed = resumeMatch?.[1] === undefined ? undefined : Number(resumeMatch[1])
+  const jdRequirement = parseExperience(jd)
+  if (jdRequirement !== undefined) {
+    const observed = parseExperience(resume)
+    const required = jdRequirement.maximum === undefined
+      ? `${jdRequirement.minimum}年`
+      : `${jdRequirement.minimum}-${jdRequirement.maximum}年`
     constraints.push({
       field: 'experience',
       constraintType: 'eligibility',
-      status: observed === undefined ? 'unknown' : observed >= minimum ? 'matched' : 'unmatched',
-      required: `${minimum}年`,
-      ...observed === undefined ? {} : { observed: `${observed}年` },
+      status: observed === undefined
+        ? 'unknown'
+        : observed.minimum >= jdRequirement.minimum ? 'matched' : 'unmatched',
+      required,
+      ...observed === undefined ? {} : { observed: `${observed.minimum}年` },
     })
   }
   return constraints
 }
 
-function scoreMatch(requiredSkillCount: number, matchedSkillCount: number, constraints: readonly ResumeMatchConstraint[]): number {
-  if (requiredSkillCount === 0 && constraints.length === 0) return 0
-  const skillScore = requiredSkillCount === 0 ? 35 : (matchedSkillCount / requiredSkillCount) * 60
-  const constraintScore = constraints.length === 0
-    ? 25
-    : constraints.reduce((total, constraint) => total + (constraint.status === 'matched' ? 30 : constraint.status === 'unknown' ? 15 : 0), 0) / constraints.length
-  return Math.max(0, Math.min(100, Math.round(skillScore + constraintScore + 10)))
+// BOSS obfuscates copied text with characters such as U+2011, so fold the
+// dash-like code points onto ASCII before scanning a numeric range.
+const EXPERIENCE_DASHES = /[\u2010\u2011\u2012\u2013\u2014\u2212\uff0d]/gu
+// Bounds stop a date range ("2023-2024年") from reading as a tenure.
+const MAX_PLAUSIBLE_YEARS = 60
+
+/**
+ * Parse an experience requirement, or a stated tenure.
+ *
+ * Covers the range form BOSS uses most ("1-3 年"), the minimum form
+ * ("3年以上" / "2年及以上"), an explicit label ("工作年限：1") and a tenure
+ * phrase whose "经验" is separated from the number ("1 年 AI 应用开发经验").
+ * The range's upper bound records the employer's stated window but never
+ * gates eligibility: over-qualification must not be scored as ineligible.
+ */
+function parseExperience(text: string): { minimum: number; maximum?: number } | undefined {
+  const normalized = text.replace(EXPERIENCE_DASHES, '-')
+  const range = normalized.match(/(\d+)\s*[-~～至到]\s*(\d+)\s*年/u)
+  if (range?.[1] !== undefined && range[2] !== undefined) {
+    const minimum = Number(range[1])
+    const maximum = Number(range[2])
+    if (minimum <= maximum && maximum <= MAX_PLAUSIBLE_YEARS) return { minimum, maximum }
+  }
+  const labelled = normalized.match(/(?:工作年限|工作经验|经验要求)\s*[:：]?\s*(\d+)/u)
+  if (labelled?.[1] !== undefined) return { minimum: Number(labelled[1]) }
+  const atLeast = normalized.match(/(\d+)\s*年\s*(?:及)?以上/u)
+  if (atLeast?.[1] !== undefined) return { minimum: Number(atLeast[1]) }
+  const tenure = normalized.match(/(\d+)\s*年[\s\S]{0,16}?经验/u)
+  if (tenure?.[1] !== undefined) return { minimum: Number(tenure[1]) }
+  return undefined
+}
+
+interface ScoreMatchInput {
+  readonly requiredTechnologies: readonly string[]
+  readonly matchedTechnologies: readonly string[]
+  readonly requiredCapabilities: readonly ResumeCapabilityLabel[]
+  readonly matchedCapabilities: readonly ResumeCapabilityLabel[]
+  readonly constraints: readonly ResumeMatchConstraint[]
+  readonly scoring: ResumeMatchScoringOptions
+}
+
+/**
+ * Weighted skill coverage plus the averaged constraint score.
+ *
+ * Weighting stops a long keyword list from diluting the denominator: a
+ * capability or a target-direction technology counts for more than an
+ * incidental mention. Only constraints selected by the scoring options are
+ * scored, so a location preference informs the result without costing points.
+ */
+function scoreMatch(input: ScoreMatchInput): number {
+  const { scoring } = input
+  const requiredWeight = weightedTotal(input.requiredTechnologies, 'technology', scoring)
+    + weightedTotal(input.requiredCapabilities, 'capability', scoring)
+  if (requiredWeight === 0 && input.constraints.length === 0) return 0
+  const matchedWeight = weightedTotal(input.matchedTechnologies, 'technology', scoring)
+    + weightedTotal(input.matchedCapabilities, 'capability', scoring)
+  const skillScore = requiredWeight === 0
+    ? scoring.noRequiredSkillScore
+    : (matchedWeight / requiredWeight) * scoring.skillWeightTotal
+  const scored = input.constraints.filter(
+    (constraint) => scoring.preferenceConstraintsAffectScore || constraint.constraintType !== 'preference',
+  )
+  const constraintScore = scored.length === 0
+    ? scoring.noScoredConstraintScore
+    : scored.reduce((total, constraint) => total + (
+        constraint.status === 'matched'
+          ? scoring.matchedConstraintScore
+          : constraint.status === 'unknown' ? scoring.unknownConstraintScore : scoring.unmatchedConstraintScore
+      ), 0) / scored.length
+  return Math.max(0, Math.min(100, Math.round(skillScore + constraintScore + scoring.baseScore)))
+}
+
+function weightedTotal(
+  labels: readonly string[],
+  kind: 'technology' | 'capability',
+  scoring: ResumeMatchScoringOptions,
+): number {
+  return labels.reduce((total, label) => total + requiredItemWeight(label, kind, scoring), 0)
 }
 
 function calibratedScore(
   rawScore: number,
   extractionStatus: ResumeTextContent['extractionStatus'],
   constraints: readonly ResumeMatchConstraint[],
+  requiredSkillCount: number,
+  matchedSkillCount: number,
+  scoring: ResumeMatchScoringOptions,
 ): number {
   const eligibilityConstraints = constraints.filter((constraint) => constraint.constraintType === 'eligibility')
-  if (extractionStatus === 'text_truncated') return Math.min(rawScore, 24)
-  if (eligibilityConstraints.some((constraint) => constraint.status === 'unmatched')) return Math.min(rawScore, 49)
-  if (eligibilityConstraints.some((constraint) => constraint.status === 'unknown')) return Math.min(rawScore, 74)
+  if (extractionStatus === 'text_truncated') return Math.min(rawScore, scoring.truncatedScoreCap)
+  if (eligibilityConstraints.some((constraint) => constraint.status === 'unmatched')) {
+    return Math.min(rawScore, scoring.unmatchedScoreCap)
+  }
+  if (eligibilityConstraints.some((constraint) => constraint.status === 'unknown')) {
+    return Math.min(rawScore, scoring.unknownScoreCap)
+  }
+  // A JD that yields barely any requirement terms cannot support a confident
+  // score: without this the weighted ratio reads as a near-perfect match.
+  if (requiredSkillCount > 0 && requiredSkillCount < scoring.minRequiredSkillsForFullCredit) {
+    return Math.min(rawScore, scoring.thinJdScoreCap)
+  }
+  // Weighting a core skill heavily must not let a single confirmed term stand in
+  // for a confident verdict.
+  if (matchedSkillCount < scoring.minMatchedSkillsForStrong) {
+    return Math.min(rawScore, scoring.matchedEvidenceScoreCap)
+  }
   return rawScore
 }
 
@@ -536,19 +669,53 @@ function levelFor(
   extractionStatus: ResumeTextContent['extractionStatus'],
   requiredSkillCount: number,
   constraints: readonly ResumeMatchConstraint[],
+  scoring: ResumeMatchScoringOptions,
 ): ResumeMatchLevel {
   const eligibilityConstraints = constraints.filter((constraint) => constraint.constraintType === 'eligibility')
   if (extractionStatus === 'text_truncated' || (requiredSkillCount === 0 && constraints.length === 0)) {
     return 'insufficient_evidence'
   }
   if (eligibilityConstraints.some((constraint) => constraint.status === 'unmatched')) {
-    return score >= 25 ? 'weak' : 'insufficient_evidence'
+    return score >= scoring.weakScore ? 'weak' : 'insufficient_evidence'
   }
-  if (eligibilityConstraints.some((constraint) => constraint.status === 'unknown') && score >= 50) return 'moderate'
-  if (score >= 75) return 'strong'
-  if (score >= 50) return 'moderate'
-  if (score >= 25) return 'weak'
+  if (eligibilityConstraints.some((constraint) => constraint.status === 'unknown') && score >= scoring.moderateScore) {
+    return 'moderate'
+  }
+  if (score >= scoring.strongScore) return 'strong'
+  if (score >= scoring.moderateScore) return 'moderate'
+  if (score >= scoring.weakScore) return 'weak'
   return 'insufficient_evidence'
+}
+
+/**
+ * Turn every unanswered eligibility requirement into a question.
+ *
+ * A missing evidence field used to only lower the score. Asking is the honest
+ * outcome: the candidate can answer it, the matcher cannot infer it.
+ */
+function buildClarifications(constraints: readonly ResumeMatchConstraint[]): ResumeMatchClarification[] {
+  return constraints
+    .filter((constraint) => constraint.constraintType === 'eligibility' && constraint.status === 'unknown')
+    .map((constraint) => ({
+      field: constraint.field,
+      constraintType: constraint.constraintType,
+      ...(constraint.required === undefined ? {} : { required: constraint.required }),
+      question: clarificationQuestion(constraint),
+    }))
+}
+
+function clarificationQuestion(constraint: ResumeMatchConstraint): string {
+  const required = constraint.required === undefined ? '' : `（要求：${constraint.required}）`
+  switch (constraint.field) {
+    case 'education':
+      return `未能从简历确认你的最高学历${required}，请确认你的最高学历。`
+    case 'experience':
+      return `未能从简历确认你的相关工作年限${required}，请确认你的实际工作年限。`
+    case 'cohort':
+      return `未能从简历确认你的毕业届别${required}，请确认你的毕业年份或届别。`
+    case 'location':
+      return `未能从简历确认你的所在城市${required}，请确认你期望的工作城市。`
+  }
 }
 
 function educationRequirement(text: string): string | undefined {

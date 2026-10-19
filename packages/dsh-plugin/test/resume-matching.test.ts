@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { Context } from '@deepseek-ai/cordis'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { CallId } from './dsh-llm-brand.ts'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import type { BossWatchDataSource, JobDetails } from '../src/domain.ts'
@@ -52,7 +52,7 @@ test('matches locally and returns evidence without resume content', async () => 
       applicationId: JOB.applicationId,
       resumeVersionId: fixture.resumeVersionId,
     })
-    assert.equal(result.strategyVersion, 'local-evidence-match-v3')
+    assert.equal(result.strategyVersion, 'local-evidence-match-v5')
     assert.equal(result.createdAt, '2026-08-18T02:00:00.000Z')
     assert.equal(result.extraction.status, 'text_extracted')
     assert.deepEqual(result.skills.missing, [])
@@ -133,8 +133,10 @@ test('recognizes descriptive JD capabilities, summarizes project directions, and
     assert.ok(result.gaps.includes('preference_mismatch:location'))
     assert.ok(result.risks.includes('location_preference_needs_confirmation'))
     assert.equal(result.gaps.includes('hard_constraint:location'), false)
+    // Location is a preference, so with `preferenceConstraintsAffectScore` off it
+    // is still reported but no longer deducts points: 90 -> 100.
     assert.equal(result.matchLevel, 'strong')
-    assert.equal(result.score, 90)
+    assert.equal(result.score, 100)
     const serialized = JSON.stringify(result)
     assert.equal(serialized.includes('候选人示例'), false)
     assert.equal(serialized.includes('智能招聘工作台'), false)
@@ -162,7 +164,7 @@ test('persists sanitized match results by JD and resume hashes', async () => {
     const second = await matcher.match({ applicationId: JOB.applicationId, resumeVersionId: fixture.resumeVersionId })
 
     assert.equal(second.matchId, first.matchId)
-    assert.equal(first.strategyVersion, 'local-evidence-match-v3')
+    assert.equal(first.strategyVersion, 'local-evidence-match-v5')
     assert.ok(first.matchId.startsWith('resume-match:'))
     assert.deepEqual(matches.get(first.matchId), first)
     assert.deepEqual(matches.list({ applicationId: JOB.applicationId }), [first])
@@ -186,7 +188,10 @@ test('reports missing skills and hard-constraint gaps without guessing', async (
     assert.equal(result.hardConstraints.find((item) => item.field === 'location')?.status, 'unmatched')
     assert.ok(result.gaps.includes('missing_skill:TypeScript'))
     assert.ok(result.risks.includes('hard_constraint_not_observed') === false)
-    assert.equal(result.matchLevel, 'insufficient_evidence')
+    // Dropping the location preference from the average lifts the constraint term
+    // from 10 to 15, tipping this no-skills-matched case from
+    // insufficient_evidence to weak.
+    assert.equal(result.matchLevel, 'weak')
     assert.equal(result.requiresGateA, true)
   } finally {
     fixture.store.close()

@@ -158,7 +158,7 @@ export async function evaluateResumeMatchGold(
   const badcases = results.filter((result) => result.tags.includes('badcase'))
   return {
     schemaVersion: 'resume-match-gold-v1',
-    strategyVersion: 'local-evidence-match-v3',
+    strategyVersion: 'local-evidence-match-v5',
     evaluatedAt: now().toISOString(),
     caseCount: results.length,
     passedCaseCount,

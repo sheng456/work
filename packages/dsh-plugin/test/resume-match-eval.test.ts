@@ -15,7 +15,7 @@ test('passes the fictional Gold and Badcase regression set without returning raw
   })
 
   assert.equal(report.schemaVersion, 'resume-match-gold-v1')
-  assert.equal(report.strategyVersion, 'local-evidence-match-v3')
+  assert.equal(report.strategyVersion, 'local-evidence-match-v5')
   assert.equal(report.caseCount, 10)
   assert.equal(report.passedCaseCount, 10)
   assert.equal(report.failedCaseCount, 0)
