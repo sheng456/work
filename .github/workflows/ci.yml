@@ -44,6 +44,11 @@ jobs:
         run: corepack pnpm@11.7.0 --dir "${RUNNER_WORKSPACE}/deepseek-harness" run build:lib
       - name: Install plugin dependencies
         run: corepack pnpm@11.7.0 --dir packages/dsh-plugin install --frozen-lockfile
+      # The plugin suite imports the repository's root API server (for example
+      # test/recruitment-jd.test.ts), so the root dependencies must exist too;
+      # this job otherwise never installs them.
+      - name: Install root dependencies
+        run: npm ci
       - run: corepack pnpm@11.7.0 --dir packages/dsh-plugin test
       - run: corepack pnpm@11.7.0 --dir packages/dsh-plugin typecheck
       - run: corepack pnpm@11.7.0 --dir packages/dsh-plugin build
