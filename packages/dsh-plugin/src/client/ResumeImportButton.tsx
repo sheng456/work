@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, IconPlusOutlineMedium, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconPlus } from './harness-icons.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { buildResumeImportDraft, ResumeUploadClient, selectTransferredResumeFile } from './resume-upload-client.ts'
 import { NS } from './locales.ts'
@@ -101,7 +102,7 @@ export function ResumeImportButton({ inputActions, useInput, t }: ResumeImportBu
           className={css.button}
           variant="toolbar"
           size="sm"
-          icon={<IconPlusOutlineMedium size={16} />}
+          icon={<IconPlus size={16} />}
           aria-label={busy ? t('action.importing') : t('action.import')}
           aria-busy={busy}
           disabled={disabled}

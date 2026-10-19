@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { IconDataOutlineMedium, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconData } from './harness-icons.ts'
 import {
   DASHBOARD_DRAFT_EVENT,
   isDashboardDraftRequest,
@@ -37,7 +38,7 @@ export function JobSearchDashboardButton({ t, useInput, inputActions }: JobSearc
         aria-label={t('dashboard.action')}
         onClick={() => window.dispatchEvent(new Event(DASHBOARD_TOGGLE_EVENT))}
       >
-        <IconDataOutlineMedium size={16} />
+        <IconData size={16} />
       </button>
     </Tooltip>
   )

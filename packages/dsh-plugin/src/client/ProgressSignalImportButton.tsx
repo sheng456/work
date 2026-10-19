@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, IconPaperclipOutlineMedium, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconPaperclip } from './harness-icons.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { buildProgressSignalImportDraft, ProgressSignalUploadClient } from './progress-signal-upload-client.ts'
 import { NS } from './locales.ts'
@@ -51,7 +52,7 @@ export function ProgressSignalImportButton({ inputActions, useInput, t }: Progre
           className={css.button}
           variant="toolbar"
           size="sm"
-          icon={<IconPaperclipOutlineMedium size={16} />}
+          icon={<IconPaperclip size={16} />}
           aria-label={busy ? t('signal.action.importing') : t('signal.action.import')}
           aria-busy={busy}
           disabled={disabled}

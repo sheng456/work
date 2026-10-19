@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { IconCloseOutlineMedium, IconLinkOutlineMedium } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconClose, IconLink } from './harness-icons.ts'
 import { DASHBOARD_TOGGLE_EVENT, DASHBOARD_TRIGGER_ID } from './JobSearchDashboardButton.tsx'
 import { DASHBOARD_DRAFT_EVENT, isDashboardDraftRequest } from './dashboard-client.ts'
 import { NS } from './locales.ts'
@@ -111,11 +111,11 @@ export function JobSearchDashboardOverlay({ t }: JobSearchDashboardOverlayProps)
         </div>
         <div className={css.actions}>
           <a className={css.externalLink} href="/boss-watch/" target="_blank" rel="noopener noreferrer">
-            <IconLinkOutlineMedium size={14} />
+            <IconLink size={14} />
             {t('dashboard.openStandalone')}
           </a>
           <button ref={closeButtonRef} type="button" className={css.close} aria-label={t('dashboard.close')} onClick={() => setOpen(false)}>
-            <IconCloseOutlineMedium size={16} />
+            <IconClose size={16} />
           </button>
         </div>
       </div>
