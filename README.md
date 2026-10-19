@@ -3,6 +3,13 @@
 [![CI](https://github.com/ZeroMadLife/boss-watch-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/ZeroMadLife/boss-watch-agent/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-111827.svg)](LICENSE)
 
+> **来源说明 / Attribution**
+>
+> 本项目基于 [ZeroMadLife/boss-watch-agent](https://github.com/ZeroMadLife/boss-watch-agent)
+> （MIT License，Copyright (c) 2026 ZeroMadLife）修改而来，仅用于个人求职流程。
+> 原项目的 `LICENSE` 与版权声明完整保留、未作改动；相对于上游的主要改动见文末「本仓库的改动」。
+> 若你是原作者并希望本派生仓库做任何调整，请通过 Issue 联系。
+
 一个运行在本机、集成到 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的求职 Agent。
 
 它把岗位收集、JD 归档、简历匹配、官网表单预填、投递记录和后续跟进放进同一条可审计流程。SQLite
@@ -205,6 +212,27 @@ CI 使用固定的 DSH commit 做兼容验证；本地跟随上游新版本不�
 - [本地存储与飞书投影](docs/local-storage-and-export.md)
 - [测试账号试用手册](docs/test-account-quickstart.md)
 - [安全策略](SECURITY.md)
+
+## 本仓库的改动
+
+本仓库是上游 [ZeroMadLife/boss-watch-agent](https://github.com/ZeroMadLife/boss-watch-agent)
+的个人修改版，主要改动如下：
+
+- **适配本地 DeepSeek Harness 版本**：客户端 UI 改用本地 harness 的渲染器接口、图标名与 `useInput` API；
+  测试对 `CallId` / `ToolCallId` 的命名差异做了双版本兼容垫片。
+- **简历解析改为纯 JavaScript**：PDF 走 `pdfjs-dist`、DOCX 用内置 `node:zlib` 解包，
+  不再依赖 `pdftotext` / `textutil` / `unzip` 等外部命令；同时修正了"命令不可用"判定里的逻辑缺陷，
+  并改为优先使用内置解析器（避免劣质 `pdftotext` 静默丢弃中文）。
+- **匹配评分升级到 v5**：加权技能覆盖（能力标签与核心技能权重更高）、地点偏好不再参与扣分、
+  薄 JD 与命中项不足时封顶、资格无法确认时输出 `clarifications` 追问。
+- **Windows 兼容修复**：数据目录按平台解析（`%LOCALAPPDATA%`）、统一 POSIX 路径分隔符、
+  补 `.gitattributes` 以消除 CRLF 假 diff。
+- **进度信号分类器**：补齐「抱歉…需要其他资质的候选人」「祝您找到理想工作」等常见礼貌拒绝措辞，
+  并保持"抱歉"单独出现时不触发拒绝。
+- **新增文档**：[`docs/closed-loop-runbook.md`](docs/closed-loop-runbook.md)（闭环流程与工具映射）、
+  [`docs/github-upload.md`](docs/github-upload.md)。
+
+源码与文档的其余部分版权归原作者所有，遵循 [MIT](LICENSE)。
 
 ## License
 
