@@ -10,6 +10,22 @@ import {
 } from '../src/job-source-import.ts'
 import { SqliteJobLeadStore } from '../src/job-lead.ts'
 
+/**
+ * Windows requires SeCreateSymbolicLinkPrivilege (or Developer Mode) to create a
+ * symlink. Report that as an unsupported capability instead of a failure so the
+ * containment assertions still run on every platform.
+ */
+async function trySymlink(target: string, path: string): Promise<boolean> {
+  try {
+    await symlink(target, path)
+    return true
+  } catch (error: unknown) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (code === 'EPERM' || code === 'EACCES' || code === 'ENOTSUP') return false
+    throw error
+  }
+}
+
 test('previews a local CSV without writing facts, then applies one atomic source snapshot', async () => {
   const root = await mkdtemp(join(tmpdir(), 'boss-watch-import-csv-'))
   const importRoot = join(root, 'imports')
@@ -113,7 +129,7 @@ test('keeps A to B to A source snapshots and invalidates verification only on ch
   }
 })
 
-test('requires an explicit XLSX sheet and ignores formula cells', async () => {
+test('requires an explicit XLSX sheet and ignores formula cells', async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'boss-watch-import-xlsx-'))
   const importRoot = join(root, 'imports')
   const store = new SqliteJobLeadStore(join(root, 'boss-watch.sqlite3'))
@@ -146,11 +162,14 @@ test('requires an explicit XLSX sheet and ignores formula cells', async () => {
     )
     const outside = join(root, 'outside.csv')
     await writeFile(outside, '公司,岗位\n虚构外部公司,后端工程师\n')
-    await symlink(outside, join(importRoot, 'linked.csv'))
-    await assert.rejects(
-      () => service.preview({ sourceRef: 'tencent-xlsx', fileName: 'linked.csv' }),
-      /file_outside_import_root/u,
-    )
+    if (await trySymlink(outside, join(importRoot, 'linked.csv'))) {
+      await assert.rejects(
+        () => service.preview({ sourceRef: 'tencent-xlsx', fileName: 'linked.csv' }),
+        /file_outside_import_root/u,
+      )
+    } else {
+      t.diagnostic('symlink creation unavailable on this platform; skipped the linked.csv containment assertion')
+    }
   } finally {
     store.close()
     await rm(root, { recursive: true, force: true })

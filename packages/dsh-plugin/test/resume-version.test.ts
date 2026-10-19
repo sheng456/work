@@ -6,6 +6,22 @@ import test from 'node:test'
 import { createHash } from 'node:crypto'
 import { LocalResumeImportService, SqliteResumeVersionStore } from '../src/resume-version.ts'
 
+/**
+ * Windows requires SeCreateSymbolicLinkPrivilege (or Developer Mode) to create a
+ * symlink. Report that as an unsupported capability instead of a failure so the
+ * path-containment assertions still run on every platform.
+ */
+async function trySymlink(target: string, path: string): Promise<boolean> {
+  try {
+    await symlink(target, path)
+    return true
+  } catch (error: unknown) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (code === 'EPERM' || code === 'EACCES' || code === 'ENOTSUP') return false
+    throw error
+  }
+}
+
 test('previews a controlled local resume without persisting content, then imports an immutable version', async () => {
   const root = await mkdtemp(join(tmpdir(), 'boss-watch-resume-'))
   const store = new SqliteResumeVersionStore(':memory:')
@@ -94,19 +110,23 @@ test('deduplicates identical resume content and preserves explicit version ances
   }
 })
 
-test('rejects path traversal, unsupported files, and symbolic links', async () => {
+test('rejects path traversal, unsupported files, and symbolic links', async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'boss-watch-resume-invalid-'))
   const outside = join(root, '..', `outside-${Date.now()}.pdf`)
   const store = new SqliteResumeVersionStore(':memory:')
   const service = new LocalResumeImportService({ resumeRoot: root, store })
   await writeFile(outside, 'outside')
   await writeFile(join(root, 'candidate.png'), 'image')
-  await symlink(outside, join(root, 'linked.pdf'))
+  const linked = await trySymlink(outside, join(root, 'linked.pdf'))
 
   try {
     await assert.rejects(() => service.preview({ fileName: '../outside.pdf' }), /invalid_resume_file_name/u)
     await assert.rejects(() => service.preview({ fileName: 'candidate.png' }), /unsupported_resume_file_type/u)
-    await assert.rejects(() => service.preview({ fileName: 'linked.pdf' }), /resume_file_symlink_not_allowed/u)
+    if (linked) {
+      await assert.rejects(() => service.preview({ fileName: 'linked.pdf' }), /resume_file_symlink_not_allowed/u)
+    } else {
+      t.diagnostic('symlink creation unavailable on this platform; skipped the symlinked resume assertion')
+    }
   } finally {
     store.close()
     await rm(root, { recursive: true, force: true })

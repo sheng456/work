@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { resolve, sep } from 'node:path'
 
 export interface InterviewKnowledgePreview {
   readonly previewToken: string
@@ -61,7 +61,9 @@ export class LocalInterviewKnowledgeService {
     const content = requireText(input.content, 'content')
     const occurredAt = requireTimestamp(input.occurredAt)
     const contentHash = sha256(content)
-    const relativePath = join('求职', '面经', sanitizePathPart(company), `${dateKey(occurredAt)}-${sanitizePathPart(stage)}-${sanitizePathPart(interviewId)}-${contentHash.slice(0, 12)}.md`)
+    // A POSIX-separated relative path is the stable wire form; `resolve` below
+    // still maps it onto the native filesystem.
+    const relativePath = ['求职', '面经', sanitizePathPart(company), `${dateKey(occurredAt)}-${sanitizePathPart(stage)}-${sanitizePathPart(interviewId)}-${contentHash.slice(0, 12)}.md`].join('/')
     const previewToken = `interview-knowledge-preview:${randomBytes(24).toString('hex')}`
     const preview: InterviewKnowledgePreview = {
       previewToken,
@@ -86,7 +88,7 @@ export class LocalInterviewKnowledgeService {
     const pending = this.#get(previewToken)
     if (pending.applied !== undefined) return pending.applied
     const target = resolve(this.#vaultRoot, pending.preview.relativePath)
-    if (!target.startsWith(`${this.#vaultRoot}/`)) throw new Error('invalid_knowledge_path')
+    if (!target.startsWith(`${this.#vaultRoot}${sep}`)) throw new Error('invalid_knowledge_path')
     await mkdir(resolve(target, '..'), { recursive: true })
     let deduplicated = false
     try {

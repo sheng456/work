@@ -5,6 +5,7 @@ import { lstat, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { promisify } from "node:util";
+import { inflateRawSync } from "node:zlib";
 
 const execFile = promisify(nodeExecFile);
 
@@ -491,16 +492,24 @@ async function extractResumeText(filePath: string, mediaType: string): Promise<s
     return readFile(filePath, "utf8");
   }
   if (mediaType === "application/pdf") {
-    return runTextCommand("pdftotext", ["-layout", filePath, "-"]);
+    // The bundled parser is tried first on purpose. A host `pdftotext` is only
+    // a last resort: some builds (for example the Xpdf 4.00 shipped with MSYS)
+    // report success while silently dropping every CJK character, which would
+    // wipe out a Chinese resume without any visible error.
+    try {
+      return await extractPdfText(filePath);
+    } catch (error: unknown) {
+      try {
+        return await runTextCommand("pdftotext", ["-layout", filePath, "-"]);
+      } catch (fallbackError: unknown) {
+        if (!isCommandUnavailable(fallbackError)) throw fallbackError;
+        throw error;
+      }
+    }
   }
   if (mediaType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-    try {
-      return await runTextCommand("textutil", ["-convert", "txt", "-stdout", filePath]);
-    } catch (error: unknown) {
-      if (!isCommandUnavailable(error)) throw error;
-      const xml = await runTextCommand("unzip", ["-p", filePath, "word/document.xml"]);
-      return xmlToText(xml);
-    }
+    const xml = await readZipEntry(filePath, "word/document.xml");
+    return xmlToText(xml);
   }
   throw new Error("unsupported_resume_text_type");
 }
@@ -531,6 +540,80 @@ function xmlToText(xml: string): string {
     .replace(/&apos;/gu, "'");
 }
 
+/**
+ * Extract text from a PDF without any external binary.
+ *
+ * `pdftotext` is preferred when present, but it is not part of a stock Windows
+ * or minimal Linux install. The bundled `pdfjs-dist` parser keeps resume
+ * matching working on the host machine without a poppler dependency.
+ */
+async function extractPdfText(filePath: string): Promise<string> {
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const data = new Uint8Array(await readFile(filePath));
+  const document = await pdfjs.getDocument({
+    data,
+    useSystemFonts: true,
+    verbosity: 0,
+  }).promise;
+  const pages: string[] = [];
+  for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+    const page = await document.getPage(pageNumber);
+    const content = await page.getTextContent();
+    let text = "";
+    for (const item of content.items) {
+      if (!("str" in item)) continue;
+      text += item.str;
+      if (item.hasEOL === true) text += "\n";
+    }
+    pages.push(text);
+    page.cleanup();
+  }
+  return pages.join("\n");
+}
+
+/**
+ * Read one entry out of a zip archive (the DOCX container) using only
+ * `node:zlib`. This replaces the former `unzip -p` shell-out, which does not
+ * exist on Windows.
+ */
+async function readZipEntry(filePath: string, wanted: string): Promise<string> {
+  const buffer = await readFile(filePath);
+  const endOfCentralDirectory = findZipEndOfCentralDirectory(buffer);
+  if (endOfCentralDirectory === undefined) throw new Error("invalid_docx_archive");
+  const entryCount = buffer.readUInt16LE(endOfCentralDirectory + 10);
+  let offset = buffer.readUInt32LE(endOfCentralDirectory + 16);
+  for (let index = 0; index < entryCount; index += 1) {
+    if (buffer.readUInt32LE(offset) !== 0x02014b50) throw new Error("invalid_docx_archive");
+    const method = buffer.readUInt16LE(offset + 10);
+    const compressedSize = buffer.readUInt32LE(offset + 20);
+    const nameLength = buffer.readUInt16LE(offset + 28);
+    const extraLength = buffer.readUInt16LE(offset + 30);
+    const commentLength = buffer.readUInt16LE(offset + 32);
+    const localOffset = buffer.readUInt32LE(offset + 42);
+    const name = buffer.toString("utf8", offset + 46, offset + 46 + nameLength);
+    if (name === wanted) {
+      if (buffer.readUInt32LE(localOffset) !== 0x04034b50) throw new Error("invalid_docx_archive");
+      const localNameLength = buffer.readUInt16LE(localOffset + 26);
+      const localExtraLength = buffer.readUInt16LE(localOffset + 28);
+      const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+      const payload = buffer.subarray(dataStart, dataStart + compressedSize);
+      if (method === 0) return payload.toString("utf8");
+      if (method === 8) return inflateRawSync(payload).toString("utf8");
+      throw new Error("unsupported_docx_compression");
+    }
+    offset += 46 + nameLength + extraLength + commentLength;
+  }
+  throw new Error("invalid_docx_archive");
+}
+
+function findZipEndOfCentralDirectory(buffer: Buffer): number | undefined {
+  const earliest = Math.max(0, buffer.length - 0xffff - 22);
+  for (let offset = buffer.length - 22; offset >= earliest; offset -= 1) {
+    if (buffer.readUInt32LE(offset) === 0x06054b50) return offset;
+  }
+  return undefined;
+}
+
 function normalizeExtractedText(value: string): string {
   return value
     .replace(/\u0000/gu, "")
@@ -541,11 +624,10 @@ function normalizeExtractedText(value: string): string {
 }
 
 function isCommandUnavailable(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    "code" in error &&
-    (error.code === "ENOENT" || error.message === "resume_text_extraction_unavailable")
-  );
+  if (!(error instanceof Error)) return false;
+  if (error.message === "resume_text_extraction_unavailable") return true;
+  const code = (error as NodeJS.ErrnoException).code;
+  return code === "ENOENT";
 }
 
 function fromRow(row: ResumeVersionRow): ResumeVersion {

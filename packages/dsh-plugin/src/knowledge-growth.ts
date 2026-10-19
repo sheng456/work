@@ -1,5 +1,5 @@
 import { readdir } from 'node:fs/promises'
-import { join, relative, resolve } from 'node:path'
+import { basename, join, relative, resolve, sep } from 'node:path'
 
 export interface KnowledgeNoteSummary {
   readonly relativePath: string
@@ -32,10 +32,13 @@ export class LocalKnowledgeGrowthService {
     const files = await collectMarkdown(this.#vaultRoot, this.#maxFiles)
     const notes: KnowledgeNoteSummary[] = []
     for (const file of files) {
-      const title = relative(this.#vaultRoot, file).split('/').at(-1)?.replace(/\.md$/u, '') ?? ''
+      // `relative()` returns OS-native separators, so normalise the wire value
+      // to POSIX: a Windows backslash must not leak into the client payload.
+      const relativePath = relative(this.#vaultRoot, file).split(sep).join('/')
+      const title = basename(file).replace(/\.md$/u, '')
       const matchedTerms = terms.filter(term => title.toLocaleLowerCase().includes(term.toLocaleLowerCase()))
       if (matchedTerms.length === 0 && terms.length > 0) continue
-      notes.push({ relativePath: relative(this.#vaultRoot, file), title, matchedTerms })
+      notes.push({ relativePath, title, matchedTerms })
     }
     const recommendations = missingSkills.map(skill => notes.some(note => note.matchedTerms.includes(skill))
       ? `复习知识库中与“${skill}”相关的笔记，并补一个可讲项目案例`
