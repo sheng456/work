@@ -1,4 +1,3 @@
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { readFile } from 'node:fs/promises'
 import type {
@@ -16,6 +15,7 @@ import type {
   BrowserWatchPoll,
   BossWatchBrowserController,
 } from './domain.ts'
+import { resolveDataDirectory } from './data-directory.ts'
 
 const DEFAULT_API_ORIGIN = 'http://127.0.0.1:4318'
 
@@ -26,7 +26,7 @@ export class LocalBossWatchBrowserController implements BossWatchBrowserControll
   constructor(
     origin = process.env.BOSS_WATCH_API_ORIGIN ?? DEFAULT_API_ORIGIN,
     tokenPath = process.env.BOSS_WATCH_SERVICE_TOKEN_PATH
-      ?? join(homedir(), 'Library', 'Application Support', 'BossWatchAgent', 'dsh-service-token'),
+      ?? join(resolveDataDirectory(), 'dsh-service-token'),
   ) {
     const url = new URL(origin)
     if (url.protocol !== 'http:' || (url.hostname !== '127.0.0.1' && url.hostname !== 'localhost')) {

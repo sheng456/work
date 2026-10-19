@@ -39,6 +39,7 @@ import { LocalCandidateProfileService, SqliteCandidateProfileStore } from './can
 import { LocalKnowledgeGrowthService } from './knowledge-growth.js'
 import { LocalJobSourceRefreshScheduler } from './job-source-refresh-scheduler.js'
 import { LocalInterviewKnowledgeService } from './interview-note-knowledge.js'
+import { resolveDataDirectory } from './data-directory.ts'
 
 export const name = 'boss-watch-dsh-plugin'
 export const inject = ['tools', 'skills']
@@ -56,7 +57,7 @@ interface AttachmentReader {
 
 export function apply(ctx: Context): void {
   const databasePath = process.env.BOSS_WATCH_DB_PATH
-    ?? join(homedir(), 'Library', 'Application Support', 'BossWatchAgent', 'boss-watch.sqlite3')
+    ?? join(resolveDataDirectory(), 'boss-watch.sqlite3')
   const databaseReady = existsSync(databasePath)
   const source = new SqliteBossWatchDataSource(databasePath)
   const browser = new LocalBossWatchBrowserController()
@@ -117,7 +118,7 @@ export function apply(ctx: Context): void {
     ? undefined
     : new LocalResumeImportService({
         resumeRoot: process.env.BOSS_WATCH_RESUME_DIR
-          ?? join(homedir(), 'Library', 'Application Support', 'BossWatchAgent', 'resumes'),
+          ?? join(resolveDataDirectory(), 'resumes'),
         store: resumeStore,
       })
   const resumeMatching = resumeImport === undefined
@@ -149,14 +150,14 @@ export function apply(ctx: Context): void {
     ? undefined
     : new LocalLeadSourceImportService({
         importRoot: process.env.BOSS_WATCH_IMPORT_DIR
-          ?? join(homedir(), 'Library', 'Application Support', 'BossWatchAgent', 'imports'),
+          ?? join(resolveDataDirectory(), 'imports'),
         store: leadStore,
       })
   const clipboardImportService = leadStore === undefined
     ? undefined
     : new LocalClipboardLeadSourceImportService({
         importRoot: process.env.BOSS_WATCH_IMPORT_DIR
-          ?? join(homedir(), 'Library', 'Application Support', 'BossWatchAgent', 'imports'),
+          ?? join(resolveDataDirectory(), 'imports'),
         store: leadStore,
       })
   const visualImportService = leadStore === undefined

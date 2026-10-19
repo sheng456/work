@@ -1,7 +1,7 @@
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { HttpBossHunterBrowserRuntime } from "../browser/bosshunter-runtime-client.js";
 import type { BossHunterBrowserRuntime } from "../browser/browser-run-controller.js";
+import { resolveDataDirectory } from "./data-directory.js";
 import { createLocalApiServer, type LocalApiAddress, type LocalApiServer } from "./local-api-server.js";
 import { ensureDshServiceToken } from "./service-token.js";
 
@@ -68,7 +68,7 @@ function dshWebOriginOptions(environment: NodeJS.ProcessEnv): {
 
 function parseServeCommand(arguments_: string[]): { port: number; dataDir: string } {
   let port = 4318;
-  let dataDir = join(homedir(), "Library", "Application Support", "BossWatchAgent");
+  let dataDir = resolveDataDirectory();
 
   for (let index = 0; index < arguments_.length; index += 1) {
     const argument = arguments_[index];

@@ -28,7 +28,9 @@ describe("boss-watch serve", () => {
       expect(running.databasePath).toBe(join(dataDir, "boss-watch.sqlite3"));
       expect(running.serviceTokenPath).toBe(join(dataDir, "dsh-service-token"));
       expect(await readFile(running.serviceTokenPath, "utf8")).toBe("service-token-for-serve-command-test");
-      expect((await stat(running.serviceTokenPath)).mode & 0o777).toBe(0o600);
+      if (process.platform !== "win32") {
+        expect((await stat(running.serviceTokenPath)).mode & 0o777).toBe(0o600);
+      }
       expect(messages).toContain("Analysis mode: baseline_ready (Pi model is not configured)");
       expect(messages.some((message) => message.startsWith("Pairing code: 123456"))).toBe(true);
       expect(messages.join("\n")).not.toContain("service-token-for-serve-command-test");

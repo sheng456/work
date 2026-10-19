@@ -1,6 +1,7 @@
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { readFile } from 'node:fs/promises'
+import { resolveDataDirectory } from './data-directory.ts'
+
 export type InterviewNoteStage =
   | 'screening'
   | 'first_interview'
@@ -40,7 +41,7 @@ export class LocalInterviewNoteClient {
   constructor(
     origin = process.env.BOSS_WATCH_API_ORIGIN ?? DEFAULT_API_ORIGIN,
     tokenPath = process.env.BOSS_WATCH_SERVICE_TOKEN_PATH
-      ?? join(homedir(), 'Library', 'Application Support', 'BossWatchAgent', 'dsh-service-token'),
+      ?? join(resolveDataDirectory(), 'dsh-service-token'),
   ) {
     const url = new URL(origin)
     if (url.protocol !== 'http:' || (url.hostname !== '127.0.0.1' && url.hostname !== 'localhost')) {
