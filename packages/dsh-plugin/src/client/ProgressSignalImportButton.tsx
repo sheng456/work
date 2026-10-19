@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, IconPaperclipOutline16, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconPaperclipOutlineMedium, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { buildProgressSignalImportDraft, ProgressSignalUploadClient } from './progress-signal-upload-client.ts'
 import { NS } from './locales.ts'
@@ -12,12 +12,13 @@ export type ProgressSignalImportButtonProps =
 const ACCEPT = '.eml,.txt,message/rfc822,text/plain'
 
 /** Composer control for staging an exported recruiting email or text notice. */
-export function ProgressSignalImportButton({ input, inputActions, t }: ProgressSignalImportButtonProps) {
+export function ProgressSignalImportButton({ inputActions, useInput, t }: ProgressSignalImportButtonProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<{ text: string; seq: number } | null>(null)
   const toastSeq = useRef(0)
   const client = useRef(new ProgressSignalUploadClient()).current
+  const draft = useInput(state => state.draft)
 
   const showToast = (text: string): void => {
     toastSeq.current += 1
@@ -31,7 +32,7 @@ export function ProgressSignalImportButton({ input, inputActions, t }: ProgressS
     setBusy(true)
     try {
       const result = await client.upload(file)
-      inputActions.setDraft(buildProgressSignalImportDraft(input.draft, result))
+      inputActions.setDraft(buildProgressSignalImportDraft(draft, result))
       showToast(t('signal.status.staged'))
     } catch (error: unknown) {
       const code = error instanceof Error ? error.message : 'unknown_error'
@@ -42,7 +43,7 @@ export function ProgressSignalImportButton({ input, inputActions, t }: ProgressS
     }
   }
 
-  const disabled = busy || input.phase !== 'plain'
+  const disabled = busy
   return (
     <>
       <Tooltip label={busy ? t('signal.action.importing') : t('signal.action.import')} side="bottom" delayMs={500}>
@@ -50,7 +51,7 @@ export function ProgressSignalImportButton({ input, inputActions, t }: ProgressS
           className={css.button}
           variant="toolbar"
           size="sm"
-          icon={<IconPaperclipOutline16 size={16} />}
+          icon={<IconPaperclipOutlineMedium size={16} />}
           aria-label={busy ? t('signal.action.importing') : t('signal.action.import')}
           aria-busy={busy}
           disabled={disabled}

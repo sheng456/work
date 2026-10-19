@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, IconPlusOutline16, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconPlusOutlineMedium, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { buildResumeImportDraft, ResumeUploadClient, selectTransferredResumeFile } from './resume-upload-client.ts'
 import { NS } from './locales.ts'
@@ -12,15 +12,14 @@ export type ResumeImportButtonProps =
 const ACCEPT = '.pdf,.docx,.md,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain'
 
 /** One-row DSH composer control that stages a local resume for tool preview. */
-export function ResumeImportButton({ input, inputActions, t }: ResumeImportButtonProps) {
+export function ResumeImportButton({ inputActions, useInput, t }: ResumeImportButtonProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<{ text: string; seq: number } | null>(null)
   const toastSeq = useRef(0)
   const client = useRef(new ResumeUploadClient()).current
   const busyRef = useRef(false)
-  const draftRef = useRef(input.draft)
-  draftRef.current = input.draft
+  const draft = useInput(state => state.draft)
 
   const showToast = (text: string): void => {
     toastSeq.current += 1
@@ -33,7 +32,7 @@ export function ResumeImportButton({ input, inputActions, t }: ResumeImportButto
     setBusy(true)
     try {
       const result = await client.upload(file)
-      inputActions.setDraft(buildResumeImportDraft(draftRef.current, result))
+      inputActions.setDraft(buildResumeImportDraft(draft, result))
       showToast(t('status.staged'))
     } catch (error: unknown) {
       const code = error instanceof Error ? error.message : 'unknown_error'
@@ -42,7 +41,7 @@ export function ResumeImportButton({ input, inputActions, t }: ResumeImportButto
       busyRef.current = false
       setBusy(false)
     }
-  }, [client, inputActions, t])
+  }, [client, draft, inputActions, t])
 
   const onChange = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
     const picker = event.currentTarget
@@ -93,7 +92,7 @@ export function ResumeImportButton({ input, inputActions, t }: ResumeImportButto
     }
   }, [stageFile])
 
-  const disabled = busy || input.phase !== 'plain'
+  const disabled = busy
 
   return (
     <>
@@ -102,7 +101,7 @@ export function ResumeImportButton({ input, inputActions, t }: ResumeImportButto
           className={css.button}
           variant="toolbar"
           size="sm"
-          icon={<IconPlusOutline16 size={16} />}
+          icon={<IconPlusOutlineMedium size={16} />}
           aria-label={busy ? t('action.importing') : t('action.import')}
           aria-busy={busy}
           disabled={disabled}
