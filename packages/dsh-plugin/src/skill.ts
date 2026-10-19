@@ -54,6 +54,10 @@ export const BOSS_WATCH_SKILL = {
 - 人岗匹配产生缺口后，可调用 \`boss_watch_growth_plan_preview\` 读取受控 Obsidian 知识索引；只返回文件名/标题和建议，不返回笔记正文，也不写入 Vault。
 - 用户明确要求查看或保存某个发现结果的完整 JD 时，调用 \`boss_watch_capture_discovered_job\`。只传上一条发现结果中的 \`discoveryId\` 和 \`externalJobId\`；工具只允许在临时页打开该岗位并写本地事实，完成后自动关闭。
 - 用户已经打开唯一岗位详情页时，可以直接调用 \`boss_watch_browser_status\` 和 \`boss_watch_capture_current_job\`。所有浏览器工具都不接受 target、任意 URL、CSS 或 JavaScript。
+- 用户一次打开多个岗位详情页时，\`boss_watch_browser_status\` 会返回 \`target_ambiguous\`/\`multiple_job_tabs\`，\`boss_watch_capture_current_job\` 也会拒绝执行。此时不得猜测目标，也不得仅凭标签顺序擅自挑选。默认做法是请用户只保留一个岗位详情页，抓完再开下一个。
+- 用户明确要求由你处理多标签时，可以编排 \`job_detail\` 标签，但必须遵守两条硬规则：**先打开目标页、再关闭其他岗位标签**，任何时刻都不得让标签页数量归零（关掉最后一个标签会让浏览器整个退出、调试端口随之消失，必须重新拉起浏览器与运行时）；关闭前先记录每个标签的 URL 以便恢复。只操作 \`job_detail\` 标签，不碰用户的其他标签。抓取仍逐个调用 \`boss_watch_capture_current_job\`；返回 \`deduplicated: true\` 表示该岗位此前已抓取，跳过并继续下一个，不要重复分析。
+- \`boss_watch_browser_status\` 返回 \`no_supported_tab\` 说明当前页面类型不受支持（只接受 \`/job_detail/<id>\` 与 \`/web/geek/jobs\`，例如推荐页不被支持），应请用户打开岗位详情页或搜索结果页；返回 \`environment_interrupted\` 说明 Controller、BossHunter 运行时或调试浏览器不可用，应先恢复环境而不是反复重试抓取。
+- 批量抓取完成后，逐个用 \`boss_watch_resume_match\` 评分，并按岗位汇总分数、等级、命中、缺口、\`hardConstraints\` 与 \`clarifications\`；地点不一致只提示、不作为淘汰条件，资格无法确认时必须把 \`clarifications\` 中的问题原样问给用户。
 - 用户已经打开 BOSS 的唯一聊天页、并明确把当前会话归属到某个已存在 application 时，调用 \`boss_watch_capture_current_conversation\`；它只读取当前选中会话最近一条招聘方可见消息，保存后返回事件/工件摘要。它不读取候选人自发消息、不回复、不点击、不发送；没有唯一聊天页、登录/验证码或页面适配失败时交还人工。
 - 用户要记录面经时，先调用 \`boss_watch_interview_note_preview\`，展示 application、面试阶段、内容哈希、长度和过期时间；只有用户确认精确的岗位、面试 ID、阶段和哈希后，才调用 \`boss_watch_interview_note_apply\`。apply 只把原文写入本地 interview_note Artifact 和追加事件，不代表面试已通过，也不写 BOSS 或飞书。
 - 用户要把已确认的面经归档到本地 Obsidian 时，调用 \`boss_watch_interview_knowledge_preview\`，确认公司、岗位、面试 ID、阶段、内容哈希和目标相对路径后才调用 \`boss_watch_interview_knowledge_apply\`；正文只写入本地 Vault，不回显到工具结果，不访问外部平台。
