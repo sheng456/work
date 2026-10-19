@@ -1,6 +1,6 @@
 # Boss Watch Agent
 
-[![CI](https://github.com/ZeroMadLife/boss-watch-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/ZeroMadLife/boss-watch-agent/actions/workflows/ci.yml)
+[![CI](https://github.com/sheng456/work/actions/workflows/ci.yml/badge.svg)](https://github.com/sheng456/work/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-111827.svg)](LICENSE)
 
 > **来源说明 / Attribution**
@@ -109,7 +109,7 @@ flowchart LR
 ### 安装
 
 ```bash
-git clone git@github.com:ZeroMadLife/boss-watch-agent.git
+git clone https://github.com/sheng456/work.git boss-watch-agent
 cd boss-watch-agent
 npm install
 npm run dsh:plugin:install
