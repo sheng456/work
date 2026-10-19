@@ -37,4 +37,21 @@ describe("progress signal classification", () => {
       proposedStatus: "rejected",
     });
   });
+
+  it.each([
+    ["抱歉，尽管您的简历很优秀，但是我们的职位需要其他资质的候选人。祝您在BOSS直聘找到您的理想工作！", "rejected", "rejected"],
+    ["经过综合评估，我们决定考虑更匹配的候选人，本次暂不推进。", "rejected", "rejected"],
+    ["抱歉，您未通过本轮面试。", "rejected", "rejected"],
+  ] as const)("classifies polite rejection phrasings", (content, outcome, proposedStatus) => {
+    expect(classifyProgressSignal(content)).toMatchObject({ outcome, proposedStatus });
+  });
+
+  it("does not infer rejection from an apology without a rejection semantic", () => {
+    expect(classifyProgressSignal("抱歉，请补充一下您的联系方式，方便后续联系。")).toEqual({
+      outcome: "needs_review",
+      classifierVersion: "progress-signal-rules-v1",
+      confidence: 0.25,
+      reasonCodes: ["no_high_precision_signal"],
+    });
+  });
 });

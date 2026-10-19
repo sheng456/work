@@ -27,6 +27,20 @@ const RULES: Readonly<Record<Exclude<ProgressSignalOutcome, "needs_review">, rea
     { code: "rejection_regret", pattern: /很遗憾.{0,36}(?:未能|无法|不再|暂不|没有)/u },
     { code: "rejection_not_passed", pattern: /(?:申请|面试|简历|评估).{0,20}(?:未能?通过|不通过|未被录用)/u },
     { code: "rejection_process_stopped", pattern: /(?:暂不匹配|不再推进|终止(?:本次)?招聘流程|岗位已关闭)/u },
+    // 以下三条补齐常见礼貌拒绝措辞，它们不含“很遗憾 / 未通过 / 暂不匹配”这类高精度词，
+    // 而是靠“候选人 / 资质不匹配”与“祝您另寻工作”这类语义命中。
+    // 注意：不允许“抱歉”或“祝您”单独触发，必须组合一个拒绝语义，避免改期/补充材料的开场白误判。
+    {
+      code: "rejection_apology",
+      pattern:
+        /抱歉.{0,30}(?:其他|别的|更匹配|更合适|更符合).{0,10}(?:候选人|人选|人才|资质|能力|背景)|抱歉.{0,24}(?:未(?:能|通过|录用|获)|不符合|不(?:太)?合适)/u,
+    },
+    {
+      code: "rejection_other_candidates",
+      pattern:
+        /(?:其他|别的|更匹配|更合适|更符合).{0,10}(?:候选人|人选|人才)|(?:需要|要求|寻找|招募).{0,8}(?:其他|不同).{0,8}(?:资质|能力|背景|条件|技能)/u,
+    },
+    { code: "rejection_closing_blessing", pattern: /祝(?:您|你).{0,20}(?:找到|寻得).{0,8}工作/u },
   ],
   interview: [
     { code: "interview_invitation", pattern: /面试邀请/u },
