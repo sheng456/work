@@ -43,7 +43,7 @@
     "@lucide/vue": "1.31.0",
     "html-to-text": "9.0.5",
     "postal-mime": "3.0.0",
-    "vue": "3.5.41"
+    "vue": "3.5.44"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.5",
