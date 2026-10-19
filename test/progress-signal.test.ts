@@ -39,7 +39,11 @@ describe("progress signal classification", () => {
   });
 
   it.each([
-    ["抱歉，尽管您的简历很优秀，但是我们的职位需要其他资质的候选人。祝您在BOSS直聘找到您的理想工作！", "rejected", "rejected"],
+    [
+      "抱歉，尽管您的简历很优秀，但是我们的职位需要其他资质的候选人。祝您在BOSS直聘找到您的理想工作！",
+      "rejected",
+      "rejected",
+    ],
     ["经过综合评估，我们决定考虑更匹配的候选人，本次暂不推进。", "rejected", "rejected"],
     ["抱歉，您未通过本轮面试。", "rejected", "rejected"],
   ] as const)("classifies polite rejection phrasings", (content, outcome, proposedStatus) => {

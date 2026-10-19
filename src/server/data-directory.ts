@@ -16,9 +16,7 @@ import { join } from "node:path";
  * Returns:
  *   绝对数据目录路径。目录本身不在此处创建。
  */
-export function resolveDataDirectory(
-  environment: NodeJS.ProcessEnv = process.env,
-): string {
+export function resolveDataDirectory(environment: NodeJS.ProcessEnv = process.env): string {
   const override = environment.BOSS_WATCH_DATA_DIR;
   if (override !== undefined && override.trim().length > 0) return override;
 
