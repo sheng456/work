@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { Context } from '@deepseek-ai/cordis'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { CallId } from './dsh-llm-brand.ts'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import type { CandidateBoardItem } from '../src/candidate-board.ts'
@@ -40,7 +40,7 @@ function matched(
       matchId: `match:${candidateId}`,
       score,
       matchLevel,
-      strategyVersion: 'local-evidence-match-v3',
+      strategyVersion: 'local-evidence-match-v5',
       createdAt: '2026-08-20T03:00:00.000Z',
       resumeVersionId: 'resume:fixture',
       matchedSkills: ['TypeScript', 'Agent'],
@@ -200,7 +200,7 @@ test('executes the DSH recommendation tool through the shared board derivation',
       readiness: 'ready_to_apply',
       score: 92,
       matchLevel: 'strong',
-      matchStrategyVersion: 'local-evidence-match-v3',
+      matchStrategyVersion: 'local-evidence-match-v5',
       matchedHighlights: ['TypeScript', 'Agent', 'AI Application'],
       gaps: ['Kubernetes', 'Distributed Systems'],
       whyToday: '匹配与人工确认已就绪，今天可以进入官网投递',

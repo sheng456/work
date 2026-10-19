@@ -11,7 +11,7 @@ import type { GateAApproval } from '../src/gate-a.ts'
 
 const MATCH_RESULT: ResumeMatchResult = {
   matchId: 'resume-match:fixture',
-  strategyVersion: 'local-evidence-match-v3',
+  strategyVersion: 'local-evidence-match-v5',
   createdAt: '2026-08-19T01:03:00.000Z',
   applicationId: 'application:boss-fixture',
   jd: {
@@ -152,7 +152,7 @@ test('builds a bounded board from source leads and captured BOSS jobs without fu
         matchId: 'resume-match:fixture',
         score: 86,
         matchLevel: 'strong',
-        strategyVersion: 'local-evidence-match-v3',
+        strategyVersion: 'local-evidence-match-v5',
         createdAt: '2026-08-19T01:03:00.000Z',
         resumeVersionId: 'resume-version:fixture',
         matchedSkills: ['Java'],

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { Context } from '@deepseek-ai/cordis'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { CallId } from './dsh-llm-brand.ts'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import {
@@ -17,7 +17,7 @@ import { registerBossWatchTools } from '../src/tools.ts'
 
 const MATCH: ResumeMatchResult = {
   matchId: 'resume-match:gate-a-fixture',
-  strategyVersion: 'local-evidence-match-v3',
+  strategyVersion: 'local-evidence-match-v5',
   createdAt: '2026-08-19T04:00:00.000Z',
   applicationId: 'application:gate-a-fixture',
   jd: {
@@ -83,7 +83,7 @@ test('persists an idempotent Gate A confirmation bound to the exact match snapsh
     assert.equal(first.resumeVersionId, MATCH.resume.resumeVersionId)
     assert.equal(first.jdContentHash, MATCH.jd.contentHash)
     assert.equal(first.resumeContentHash, MATCH.resume.contentHash)
-    assert.equal(first.matchStrategyVersion, 'local-evidence-match-v3')
+    assert.equal(first.matchStrategyVersion, 'local-evidence-match-v5')
     assert.equal(first.approvedAt, '2026-08-19T05:00:00.000Z')
     assert.equal(first.decision, 'proceed')
     assert.equal(first.externalAction, 'not_authorized')

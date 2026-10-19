@@ -46,7 +46,7 @@ const matchedCandidate: CandidateBoardItem = {
     matchId: 'resume-match:fixture',
     score: 86,
     matchLevel: 'strong',
-    strategyVersion: 'local-evidence-match-v3',
+    strategyVersion: 'local-evidence-match-v5',
     createdAt: '2026-08-19T03:00:00.000Z',
     resumeVersionId: 'resume-version:fixture',
     matchedSkills: ['Java', 'Backend Engineering'],

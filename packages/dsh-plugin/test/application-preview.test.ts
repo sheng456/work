@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { Context } from '@deepseek-ai/cordis'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { CallId } from './dsh-llm-brand.ts'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import { LocalApplicationPreviewService } from '../src/application-preview.ts'
@@ -45,7 +45,7 @@ const GATE_A_APPROVAL: GateAApproval = {
   resumeVersionId: RESUME_VERSION.resumeVersionId,
   jdContentHash: 'c'.repeat(64),
   resumeContentHash: RESUME_VERSION.contentHash,
-  matchStrategyVersion: 'local-evidence-match-v3',
+  matchStrategyVersion: 'local-evidence-match-v5',
   matchScore: 86,
   matchLevel: 'strong',
   approvedAt: '2026-08-18T01:45:00.000Z',

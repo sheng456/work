@@ -185,7 +185,7 @@ test('derives conservative versioned company, direction, and worth-applying labe
     confidence: 'captured_jd',
     jdStatus: 'complete',
     latestMatch: {
-      matchId: 'match:agent', score: 88, matchLevel: 'strong', strategyVersion: 'local-evidence-match-v3',
+      matchId: 'match:agent', score: 88, matchLevel: 'strong', strategyVersion: 'local-evidence-match-v5',
       createdAt: '2026-08-19T03:00:00.000Z', resumeVersionId: 'resume:fixture', matchedSkills: ['TypeScript'],
       missingSkills: [], matchedCapabilities: ['AI Application'], missingCapabilities: [],
     },
@@ -207,7 +207,7 @@ test('derives conservative versioned company, direction, and worth-applying labe
     ...baseCandidate,
     role: 'Agent 后端开发工程师',
     latestMatch: {
-      matchId: 'match:conflicting', score: 78, matchLevel: 'moderate', strategyVersion: 'local-evidence-match-v3',
+      matchId: 'match:conflicting', score: 78, matchLevel: 'moderate', strategyVersion: 'local-evidence-match-v5',
       createdAt: '2026-08-19T03:00:00.000Z', resumeVersionId: 'resume:fixture', matchedSkills: [], missingSkills: [],
       matchedCapabilities: ['AI Application', 'Backend Engineering'], missingCapabilities: [],
     },
@@ -221,7 +221,7 @@ test('derives conservative versioned company, direction, and worth-applying labe
     confidence: 'captured_jd',
     jdStatus: 'complete',
     latestMatch: {
-      matchId: 'match:moderate', score: 64, matchLevel: 'moderate', strategyVersion: 'local-evidence-match-v3',
+      matchId: 'match:moderate', score: 64, matchLevel: 'moderate', strategyVersion: 'local-evidence-match-v5',
       createdAt: '2026-08-19T03:00:00.000Z', resumeVersionId: 'resume:fixture', matchedSkills: [],
       missingSkills: ['SQL'], matchedCapabilities: [], missingCapabilities: [],
     },
@@ -236,7 +236,7 @@ test('derives conservative versioned company, direction, and worth-applying labe
     confidence: 'captured_jd',
     jdStatus: 'complete',
     latestMatch: {
-      matchId: 'match:weak', score: 31, matchLevel: 'weak', strategyVersion: 'local-evidence-match-v3',
+      matchId: 'match:weak', score: 31, matchLevel: 'weak', strategyVersion: 'local-evidence-match-v5',
       createdAt: '2026-08-19T03:00:00.000Z', resumeVersionId: 'resume:fixture', matchedSkills: [],
       missingSkills: [], matchedCapabilities: [], missingCapabilities: [],
     },
@@ -265,7 +265,7 @@ test('filters the full company and job board without dropping unbound sources', 
       jdStatus: 'complete',
       city: '上海',
       latestMatch: {
-        matchId: 'match:backend', score: 72, matchLevel: 'moderate', strategyVersion: 'local-evidence-match-v3',
+        matchId: 'match:backend', score: 72, matchLevel: 'moderate', strategyVersion: 'local-evidence-match-v5',
         createdAt: '2026-08-19T03:00:00.000Z', resumeVersionId: 'resume:fixture', matchedSkills: ['Java'],
         missingSkills: ['Redis'], matchedCapabilities: ['Backend Engineering'], missingCapabilities: [],
       },
@@ -319,7 +319,7 @@ test('allows batch selection only after JD, match, worth-it confirmation, and a 
     nextAction: 'prepare_application',
     nextTool: 'boss_watch_apply_preview',
     latestMatch: {
-      matchId: 'match:ready', score: 86, matchLevel: 'strong', strategyVersion: 'local-evidence-match-v3',
+      matchId: 'match:ready', score: 86, matchLevel: 'strong', strategyVersion: 'local-evidence-match-v5',
       createdAt: '2026-08-19T03:00:00.000Z', resumeVersionId: 'resume:fixture', matchedSkills: ['Java'],
       missingSkills: [], matchedCapabilities: ['Backend Engineering'], missingCapabilities: [],
     },
@@ -348,7 +348,7 @@ test('keeps facts, recommendations, pending confirmation, and confirmed status v
     confidence: 'captured_jd',
     jdStatus: 'complete',
     latestMatch: {
-      matchId: 'match:fixture', score: 82, matchLevel: 'strong', strategyVersion: 'local-evidence-match-v3',
+      matchId: 'match:fixture', score: 82, matchLevel: 'strong', strategyVersion: 'local-evidence-match-v5',
       createdAt: '2026-08-19T03:00:00.000Z', resumeVersionId: 'resume:fixture', matchedSkills: ['Java'],
       missingSkills: ['Redis'], matchedCapabilities: ['Backend Engineering'], missingCapabilities: [],
     },
@@ -376,7 +376,7 @@ test('keeps facts, recommendations, pending confirmation, and confirmed status v
 
 test('exposes only privacy-bounded match fields even if an input object carries extra data', () => {
   const summary = summarizeMatchEvidence({
-    matchId: 'match:fixture', score: 82, matchLevel: 'strong', strategyVersion: 'local-evidence-match-v3',
+    matchId: 'match:fixture', score: 82, matchLevel: 'strong', strategyVersion: 'local-evidence-match-v5',
     createdAt: '2026-08-19T03:00:00.000Z', resumeVersionId: 'resume:fixture', matchedSkills: ['Java'],
     missingSkills: ['Redis'], matchedCapabilities: ['Backend Engineering'], missingCapabilities: [],
     resumeText: '姓名：不应泄漏', phone: '13800000000', projects: ['不应泄漏项目原文'],
