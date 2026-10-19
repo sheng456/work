@@ -41,7 +41,7 @@ DeepSeek Harness 的求职业务插件。当前版本提供本地事实查询和
 - `boss_watch_resume_import_preview`：预览受控目录中的 PDF/DOCX/Markdown/TXT 简历，计算哈希但不返回正文；
 - `boss_watch_resume_import_apply`：用户确认后复核哈希，写入内容寻址本地工件和 ResumeVersion 元数据；
 - `boss_watch_resume_list` / `boss_watch_resume_get`：只读简历版本元数据，不返回正文或绝对路径；
-- `boss_watch_resume_match`：使用 `local-evidence-match-v3` 在本机生成技术、描述性能力、资格/地点偏好证据和脱敏 `resumeSummary`；不返回正文，不调用外部模型；
+- `boss_watch_resume_match`：使用 `local-evidence-match-v5` 在本机生成加权技能/能力覆盖、资格/地点偏好证据和脱敏 `resumeSummary`；不返回正文，不调用外部模型；
 - `boss_watch_resume_match_list`：读取按 JD/简历哈希/策略版本持久化的脱敏匹配历史；不返回简历或 JD 原文；
 - `boss_watch_gate_a_confirm`：把精确 match/JD/简历/策略快照保存为幂等 Gate A；只批准进入材料准备，不授权外部动作；
 - `boss_watch_apply_preview`：用已核验 `leadId + gateAId` 生成官网投递准备预览，简历版本固定来自 Gate A；不打开页面、不读取正文、不填表、不提交；
@@ -82,7 +82,7 @@ BOSS 岗位详情页；捕获后自动关闭，遇到登录或验证码则保留
 两者都必须先 preview 再 explicit apply。Feishu 目标表需要独立的公司、岗位、面试编号和面经字段；
 schema 变化、字段缺失或面试编号匹配到多行时会 fail closed。
 
-简历文件默认从 `~/Library/Application Support/BossWatchAgent/resumes` 读取，或由
+简历文件默认从 `%LOCALAPPDATA%\BossWatchAgent\resumes` 读取，或由
 `BOSS_WATCH_RESUME_DIR` 指定。工具只接受目录内文件名，拒绝绝对路径、路径穿越和符号链接；单文件最大
 20 MiB。SQLite 只保存版本元数据，内容寻址工件保存在该目录的 `.artifacts/` 子目录。
 DSH 原生聊天附件目前只支持 PNG/JPG/WebP/GIF；插件在输入栏提供独立“导入简历”按钮，通过 4318
@@ -144,7 +144,7 @@ npm run dsh:plugin:build
 
 ```bash
 cd $DSH_SOURCE_DIR
-DSH_HOME="$HOME/Library/Application Support/BossWatchAgent/dsh" \
+DSH_HOME="$LOCALAPPDATA/BossWatchAgent/dsh" \
   node --import tsx/esm apps/cli/src/bin.ts \
   plugin --profile web add $BOSS_WATCH_DIR/packages/dsh-plugin
 ```
@@ -166,7 +166,7 @@ Browser Controller 默认读取：
 
 ```text
 API: http://127.0.0.1:4318
-Token: ~/Library/Application Support/BossWatchAgent/dsh-service-token
+Token: %LOCALAPPDATA%\BossWatchAgent\dsh-service-token
 ```
 
 可通过 `BOSS_WATCH_API_ORIGIN` 和 `BOSS_WATCH_SERVICE_TOKEN_PATH` 覆盖；API origin 必须是 loopback HTTP。

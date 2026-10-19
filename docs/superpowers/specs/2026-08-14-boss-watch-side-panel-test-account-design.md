@@ -30,7 +30,7 @@ Chrome 原生 Side Panel 识别当前岗位页或聊天页，按用户指令把�
    Patchright CDP Adapter。
 3. Side Panel 第一屏以当前页面任务为中心；完整投递统计以后进入独立 Web Dashboard。
 4. `boss-watch serve` 是常驻本地进程，默认监听 `127.0.0.1:4318`。
-5. 第一版由用户手动启动服务，不安装 macOS LaunchAgent。
+5. 第一版由用户手动启动服务，不安装系统自启动服务（macOS LaunchAgent / Windows 计划任务）。
 6. 不自动发送消息、简历、跟进、面试确认或投递动作。
 
 ## 3. 当前证据
@@ -70,7 +70,7 @@ Node 进程。岗位页第一版只捕获 JD；聊天页保存最新可见招聘
 新增 CLI 命令：
 
 ```bash
-boss-watch serve --port 4318 --data-dir "$HOME/Library/Application Support/BossWatchAgent"
+boss-watch serve --port 4318 --data-dir "$LOCALAPPDATA/BossWatchAgent"
 ```
 
 职责：
@@ -170,7 +170,7 @@ sequenceDiagram
 - `capture_only`：分析组件初始化失败，只允许捕获、落库、读取和导出。
 
 分析请求显式携带 `mode: pi | baseline`。Pi 失败时不静默切换 Baseline；用户可以另行点击规则分析。
-UI 必须显示实际模式，不能把 Baseline 冒充 Pi。模型密钥只从服务进程环境或后续的 Keychain
+UI 必须显示实际模式，不能把 Baseline 冒充 Pi。模型密钥只从服务进程环境或后续的系统凭据管理器
 Adapter 读取，不经过扩展、SQLite、日志或 API 响应。
 
 ## 7. Side Panel 信息架构
@@ -250,7 +250,7 @@ Adapter 读取，不经过扩展、SQLite、日志或 API 响应。
 - ego-lite/Patchright 生产 Driver；
 - 飞书同步；
 - 独立全尺寸 Web Dashboard；
-- macOS LaunchAgent、自启动或桌面安装包。
+- Windows 计划任务、自启动或桌面安装包。
 
 ## 12. 验证与验收
 

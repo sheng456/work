@@ -48,7 +48,7 @@ npm run serve
 ```
 
 Chrome 远程调试、BOSS 登录、二维码、验证码和风险提示仍由用户处理。`npm run serve` 首次启动会在
-`~/Library/Application Support/BossWatchAgent/dsh-service-token` 创建 `0600` 服务凭据。DSH Host 自动读取，
+`%LOCALAPPDATA%\BossWatchAgent\dsh-service-token` 创建 `0600` 服务凭据。DSH Host 自动读取，
 普通网页 Origin、无凭据本机进程和 Chrome Extension 都不能调用 Browser Controller 接口。
 
 `/api/v1/health` 会返回 `apiContractVersion`、`buildIdentity` 和 `startedAt`。业务仓重新构建后必须重启
@@ -69,7 +69,7 @@ npm run dsh:dev
 - `DSH_PROFILE=web`
 - `DSH_WEB_PORT=3080`
 - `DSH_OPEN_BROWSER=1`：显式让 DSH 启动时打开默认浏览器；默认不打开新窗口
-- `DSH_HOME`：rc.2 默认使用 `~/Library/Application Support/BossWatchAgent/dsh-rc2-compat`；旧 checkout 使用 `.../dsh`
+- `DSH_HOME`：rc.2 默认使用 `%LOCALAPPDATA%\BossWatchAgent\dsh-rc2-compat`；旧 checkout 使用 `...\dsh`
 
 rc.2 的 DSH 自身 SQLite 存储格式与旧版不兼容，因此两个 `DSH_HOME` 必须隔离。Boss Watch 的业务 SQLite
 不受该变化影响；不要把旧 DSH storage 文件直接复制到 rc.2 目录。
@@ -102,7 +102,7 @@ corepack pnpm install
 corepack pnpm run build
 
 cd $DSH_SOURCE_DIR
-DSH_HOME="$HOME/Library/Application Support/BossWatchAgent/dsh" \
+DSH_HOME="$LOCALAPPDATA/BossWatchAgent/dsh" \
   node --import tsx/esm apps/cli/src/bin.ts \
   plugin --profile web add $BOSS_WATCH_DIR/packages/dsh-plugin
 ```
@@ -160,7 +160,7 @@ DSH_HOME="$HOME/Library/Application Support/BossWatchAgent/dsh" \
 调用固定业务动作，不向模型暴露底层 CDP。数据库尚不存在或不可读时返回 `source_unavailable`；Runtime
 断连返回 `environment_interrupted`；登录或验证返回 `human_required`。
 
-简历目录默认是 `~/Library/Application Support/BossWatchAgent/resumes`，可用 `BOSS_WATCH_RESUME_DIR`
+简历目录默认是 `%LOCALAPPDATA%\BossWatchAgent\resumes`，可用 `BOSS_WATCH_RESUME_DIR`
 覆盖。DSH 工具只接受目录内的文件名，不接受绝对路径。确认导入后，内容寻址工件位于该目录的
 `.artifacts/` 子目录；文件内容不会写入 SQLite 或工具结果。
 
@@ -196,7 +196,7 @@ npm run eval:resume-match
 ```
 
 报告只包含 case ID、标签、预测集合和聚合指标，不包含 Gold 中的 JD/简历正文。当前 10 个虚构固定场景
-用于回归 `local-evidence-match-v3`，不能作为生产准确率或真实候选分布结论。
+用于回归 `local-evidence-match-v5`，不能作为生产准确率或真实候选分布结论。
 
 页面支持和后续 Feishu/action 插件边界见 [DSH 求职插件架构与页面支持矩阵](dsh-plugin-architecture.md)。
 

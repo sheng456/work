@@ -94,11 +94,11 @@
 
 ### 5.5 `ClipboardImportAdapter`
 
-职责：使用 macOS `pbpaste` 读取用户主动复制的可见表格区域，将制表符文本或逗号文本适配为统一表格输入。
+职责：使用系统剪贴板读取命令（macOS `pbpaste` / Windows `Get-Clipboard`）读取用户主动复制的可见表格区域，将制表符文本或逗号文本适配为统一表格输入。
 
 它不访问腾讯网络、不轮询剪贴板、不把完整剪贴板原文写入 DSH transcript；预览最多返回字段映射、统计和五行
 脱敏摘要。预览令牌绑定剪贴板 SHA-256，应用前剪贴板发生任何变化都返回 `clipboard_changed_since_preview`，
-要求用户重新复制并预览。`pbpaste` 不可用时返回 `clipboard_unavailable`。
+要求用户重新复制并预览。`剪贴板读取命令` 不可用时返回 `clipboard_unavailable`。
 
 ## 6. 统一字段
 
@@ -382,7 +382,7 @@ GankInterview，也不读取腾讯文档。
 | `preview_stale` | 文件、映射、来源、工作表、进程或有效期变化，要求重新预览 |
 | `clipboard_changed_since_preview` | 剪贴板哈希变化，要求重新复制并预览 |
 | `clipboard_empty` | 剪贴板没有可解析文本 |
-| `clipboard_unavailable` | 当前系统没有可用的 `pbpaste` |
+| `clipboard_unavailable` | 当前系统没有可用的剪贴板读取命令 |
 | `import_in_progress` | 不并发写同一来源 |
 | `database_unavailable` | 不返回伪造空结果，不生成成功快照 |
 | `import_failed` | 事务回滚，保留不含敏感正文的错误摘要 |

@@ -35,7 +35,7 @@
 
 ## 3. 已执行的联调
 
-rc.2 隔离 profile：`~/Library/Application Support/BossWatchAgent/dsh-rc2-compat`，运行于 DSH Web `3090`。
+rc.2 隔离 profile：`%LOCALAPPDATA%\BossWatchAgent\dsh-rc2-compat`，运行于 DSH Web `3090`。
 
 ```text
 dsh-vision-subagent     -> DSH Web 3090 -> 插件列表显示“dsh-vision-subagent 已挂载、已启用”

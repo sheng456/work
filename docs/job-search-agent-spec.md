@@ -268,8 +268,8 @@ GankInterview 适合做第一版结构化候选池；腾讯表适合做人工维
 
 当前已实现的 GankInterview 切片由 `boss_watch_lead_search` 发起只读 `GET /api/v1/campus`，把归一化的
 `JobLead` 按 `gankinterview_campus + id` 幂等保存到 SQLite `job_leads` 表；`boss_watch_lead_list` 和
-`boss_watch_lead_get` 只读本地快照。适配器通过 `GANKINTERVIEW_API_KEY` 接收运行时密钥，macOS launcher
-会优先从 Keychain 服务 `gankinterview-api-key` 注入子进程；密钥不进入日志、Transcript 或数据库。候选的
+`boss_watch_lead_get` 只读本地快照。适配器通过 `GANKINTERVIEW_API_KEY` 接收运行时密钥，启动器
+会优先从系统凭据管理器（键名 `gankinterview-api-key`）注入子进程；密钥不进入日志、Transcript 或数据库。候选的
 `confidence` 初始只能是 `source_only`，`applyUrl` 只保留为 `channelUrl`，不会直接写入 `officialApplyUrl`。
 
 这里的“刷新”是请求时刷新，不是后台同步：只有调用 `boss_watch_lead_search` 才会请求当前筛选页，未命中的
@@ -391,9 +391,8 @@ Tailscale 绕过手机权限。未来若用户主动在手机端复制或导出�
 “值得准备/值得投递”的岗位材料，不批准发送简历或提交表单；提交仍需单独的 Gate B。
 
 当前已实现的第一版匹配只接受本地已经捕获完整 JD 的 `applicationId`，以及已经确认导入的
-`resumeVersionId`。插件在本机校验工件哈希并提取文本：Markdown/TXT 直接读取，PDF 使用本机
-`pdftotext`，DOCX 优先使用 macOS `textutil`，不可用时回退到 `unzip` 读取文档 XML。匹配策略为
-`local-evidence-match-v3`，以固定技术词、描述性能力规则和 eligibility/preference 约束生成命中、缺口、
+`resumeVersionId`。插件在本机校验工件哈希并提取文本：Markdown/TXT 直接读取，PDF 使用 `pdfjs-dist`，DOCX 用内置 `node:zlib` 解包 XML，不依赖 `pdftotext`/`textutil`/`unzip` 等外部命令。匹配策略为
+`local-evidence-match-v5`，以加权技能覆盖（能力标签与核心技能权重更高）、eligibility/preference 约束和 `clarifications` 追问生成命中、缺口、
 未知项和 0-100 分数；结果只返回哈希、计数、规范化标签和风险，不返回简历正文或原始片段。正文提取失败、
 工件哈希不一致或内容为空时失败关闭，不把“没有匹配到”解释成“简历不符合”。这仍是确定性本地规则，
 不是模型语义理解，也不是生产筛选 SLA。
@@ -423,7 +422,7 @@ DSH Web 原生聊天附件当前只覆盖下列图片媒体类型；求职插件
 
 ## 4.5 按需一键启动
 
-个人用户最终不应手动打开三个终端。设计一个按需 macOS Launcher，幂等启动并健康检查：
+个人用户最终不应手动打开三个终端。设计一个按需 Windows Launcher，幂等启动并健康检查：
 
 ```text
 BossHunter Runtime :3456
@@ -805,7 +804,7 @@ Markdown 或 TXT；应用前会重新计算字节哈希，并把文件复制到�
 `boss_watch_apply_preview` 不接受调用时替换简历版本，只使用 Gate A 已固定的 `resumeVersionId`。
 
 `boss_watch_resume_match` 只接受已经有完整 JD Artifact 的 `applicationId`，读取指定 ResumeVersion 的
-内容寻址工件。`local-evidence-match-v3` 分开输出技术词和描述性能力标签，并保留兼容的 combined
+内容寻址工件。`local-evidence-match-v5` 分开输出技术词和描述性能力标签，并保留兼容的 combined
 `required/matched/missing`；当前能力词表覆盖后端、全栈、前端、AI 应用、API 集成、性能优化、自动化测试、
 CI/CD、Cloud/DevOps 和数据工程。`resumeSummary` 只包含规范化教育等级、届别年份、城市、技术/能力标签，
 以及从明确“项目经历/项目经验”区块中得到的项目数量与方向计数；不返回姓名、联系方式、雇主、项目标题、
@@ -1094,7 +1093,7 @@ JD Diff、搜索和模型摘要可选择派生文本，审计和来源核对始�
 
 ## 12. 事实边界
 
-- **已实现**：从零开始的只读 workspace overview、本地采集 API、Controller 进程内 BOSS 搜索保护状态查询、统一岗位决策看板（公司/岗位、匹配度、公司类型和岗位方向筛选、投递入口、进度与详情）、粘贴招聘来源到确切官网 JD 的预览/确认绑定、`official_portal` JD Event/Artifact、SQLite 追加式事件、Application Tracker read model、人工状态 preview/apply、GankInterview `JobLead` 请求时快照与追加观察历史、腾讯 CSV/XLSX/剪贴板快照导入、DSH 截图视觉 preview/确认 apply、来源快照、受控 ResumeVersion 导入与内容寻址工件、DSH Web 简历选择按钮和本机短期上传会话、`local-evidence-match-v3` 脱敏摘要/能力匹配与 Gold/Badcase runner、`apply-preview-v2`、按简历快照持久化的 ATS Autofill Profile、标准/ARIA 表单扫描、当前页确定性批量填写和 Gate A 简历上传、批次本地计划/状态/checkpoint、Browser Controller、BOSS 岗位详情/选中会话招聘方消息观察、面经 preview/apply、Obsidian 面经归档、独立字段 Feishu 面经投影、Watch 本地状态机/预算/显式单次 poll/一次性到期批次、结构化 JD Diff、Feishu 目标/映射/确认状态单向投影、DSH 插件和导出。
+- **已实现**：从零开始的只读 workspace overview、本地采集 API、Controller 进程内 BOSS 搜索保护状态查询、统一岗位决策看板（公司/岗位、匹配度、公司类型和岗位方向筛选、投递入口、进度与详情）、粘贴招聘来源到确切官网 JD 的预览/确认绑定、`official_portal` JD Event/Artifact、SQLite 追加式事件、Application Tracker read model、人工状态 preview/apply、GankInterview `JobLead` 请求时快照与追加观察历史、腾讯 CSV/XLSX/剪贴板快照导入、DSH 截图视觉 preview/确认 apply、来源快照、受控 ResumeVersion 导入与内容寻址工件、DSH Web 简历选择按钮和本机短期上传会话、`local-evidence-match-v5` 脱敏摘要/能力匹配与 Gold/Badcase runner、`apply-preview-v2`、按简历快照持久化的 ATS Autofill Profile、标准/ARIA 表单扫描、当前页确定性批量填写和 Gate A 简历上传、批次本地计划/状态/checkpoint、Browser Controller、BOSS 岗位详情/选中会话招聘方消息观察、面经 preview/apply、Obsidian 面经归档、独立字段 Feishu 面经投影、Watch 本地状态机/预算/显式单次 poll/一次性到期批次、结构化 JD Diff、Feishu 目标/映射/确认状态单向投影、DSH 插件和导出。
 - **已验证**：fixture 中的无 Side Panel 捕获、幂等重试、服务身份、网页 Origin 拒绝、DSH Tool/Skill 组合和页面选择器；测试账号中的列表发现、指定岗位临时详情捕获、自动关页和幂等保存；DSH Web 中虚构 PDF 的选择、受控暂存、草稿生成和 `boss_watch_resume_import_preview` 调用；10 个虚构 Gold 场景和 7 个 Badcase 回归，包括描述性全栈 JD 与地点软偏好；Gate A 哈希绑定、`apply-preview-v2`、人工状态确认、状态提议隔离、确认状态/投递时间 Feishu 投影和 Loader 工具注册；GankInterview `/api/v1/campus` 的真实响应结构与只读 HTTP 适配 fixture；腾讯智能表两个公开只读岗位页的当前字段与链接形态；用户 Feishu 表的只读链接解析、字段读取、自动映射预览和单条记录回读；`lark-cli` 两种记录列表回执、无 `record_id` 写后唯一回查、Markdown URL 归一化及远端已有记录的 projection 恢复 fixture。
 - **持续验收**：BOSS 页面结构兼容性、字段混淆降级和 Watch 风险预算；一次测试账号通过不代表长期稳定。
 - **设计中**：独立 Launcher/独立侧栏（当前工作台已通过 DSH overlay 集成，独立页仍保留）、常驻 Watch 后台调度、自动官方页面核验、模型增强的简历语义抽取、批量投递外部执行、风险感知节流的跨进程版本、多页安全自动前进、最终提交和外部 Action；Feishu 反向同步与多条真实记录的长期验收。当前 Gold 只是 10 个虚构固定场景，扩大词表或模型边界前仍需增加经脱敏审查的真实分布样本。

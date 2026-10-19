@@ -51,7 +51,7 @@ Pairing code: 123456 (expires ...)
 ```
 
 DSH 主链路不需要配对码；配对码只属于旧的扩展兼容入口，不是 DSH 求职看板或表单流程的前置条件。服务会自动创建
-`~/Library/Application Support/BossWatchAgent/dsh-service-token`，权限为 `0600`，不打印令牌。
+`%LOCALAPPDATA%\BossWatchAgent\dsh-service-token`，权限为 `0600`，不打印令牌。
 终端和本地服务必须保持运行。
 
 ## 4. DSH 岗位捕获验收
@@ -103,7 +103,7 @@ Side Panel 的“时间线”显示当前 `applicationId` 的证据事件。完�
 
 ```bash
 npm run export -- \
-  --db "$HOME/Library/Application Support/BossWatchAgent/boss-watch.sqlite3" \
+  --db "$LOCALAPPDATA/BossWatchAgent/boss-watch.sqlite3" \
   --out ./exports/applications.json \
   --format json
 ```
