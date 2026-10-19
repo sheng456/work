@@ -1,0 +1,24 @@
+# Normalize line endings so a Windows checkout cannot produce CRLF-only diffs
+# (Biome's formatter expects LF; without this, `npm run lint` fails on CRLF).
+* text=auto eol=lf
+
+# Real binaries must never be line-ending converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.gz binary
+*.sqlite binary
+*.sqlite3 binary
+*.db binary
+
+# Lockfiles are generated; keep them out of diff review noise.
+pnpm-lock.yaml merge=binary

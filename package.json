@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "description": "Approval-gated local job-search agent and DeepSeek Harness plugin.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sheng456/work.git"
+  },
+  "homepage": "https://github.com/sheng456/work#readme",
+  "bugs": {
+    "url": "https://github.com/sheng456/work/issues"
+  },
   "type": "module",
   "bin": {
     "boss-watch": "dist/cli.js"
